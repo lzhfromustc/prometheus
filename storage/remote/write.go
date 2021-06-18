@@ -60,6 +60,7 @@ type WriteStorage struct {
 	flushDeadline     time.Duration
 	interner          *pool
 	scraper           ReadyScrapeManager
+	ticker            *time.Ticker
 
 	// For timestampTracker.
 	highestTimestamp *maxTimestamp
@@ -98,9 +99,8 @@ func NewWriteStorage(logger log.Logger, reg prometheus.Registerer, walDir string
 }
 
 func (rws *WriteStorage) run() {
-	ticker := time.NewTicker(shardUpdateDuration)
-	defer ticker.Stop()
-	for range ticker.C {
+	rws.ticker = time.NewTicker(shardUpdateDuration)
+	for range rws.ticker.C {
 		rws.samplesIn.tick()
 	}
 }
@@ -211,6 +211,7 @@ func (rws *WriteStorage) Close() error {
 	for _, q := range rws.queues {
 		q.Stop()
 	}
+	rws.ticker.Stop()
 	return nil
 }
 
